@@ -13,6 +13,9 @@ import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 class CategoryControllerTest {
 
@@ -85,5 +88,45 @@ class CategoryControllerTest {
                 .body(savedCategoryMono, Category.class)
                 .exchange()
                 .expectStatus().isOk();
+    }
+
+    @Test
+    void patchCategoryWithChanges() {
+        BDDMockito.given(categoryRepository.findById(anyString()))
+                .willReturn(Mono.just(Category.builder().build()));
+
+        BDDMockito.given(categoryRepository.save(any(Category.class)))
+                .willReturn(Mono.just(Category.builder().build()));
+
+        Mono<Category> catToUpdateMono = Mono.just(Category.builder().description("New Description").build());
+
+        webTestClient.patch()
+                .uri(CategoryController.BASE_URL + "string")
+                .body(catToUpdateMono, Category.class)
+                .exchange()
+                .expectStatus()
+                .isOk();
+
+        verify(categoryRepository).save(any());
+    }
+
+    @Test
+    void patchCategoryWithoutChanges() {
+        BDDMockito.given(categoryRepository.findById(anyString()))
+                .willReturn(Mono.just(Category.builder().description("test").build()));
+
+        BDDMockito.given(categoryRepository.save(any(Category.class)))
+                .willReturn(Mono.just(Category.builder().build()));
+
+        Mono<Category> catToUpdateMono = Mono.just(Category.builder().description("test").build());
+
+        webTestClient.patch()
+                .uri(CategoryController.BASE_URL + "id")
+                .body(catToUpdateMono, Category.class)
+                .exchange()
+                .expectStatus()
+                .isOk();
+
+        verify(categoryRepository, never()).save(any());
     }
 }
